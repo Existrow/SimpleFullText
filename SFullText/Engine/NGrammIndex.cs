@@ -21,7 +21,10 @@ namespace SFullText.Engine
             {
                 foreach (var term in model.SearchTerms)
                 {
-                    AddTermIndex(term, model.Id);
+                    if (!string.IsNullOrEmpty(term))
+                    {
+                        AddTermIndex(term, model.Id);
+                    }
                 }
             }
         }
