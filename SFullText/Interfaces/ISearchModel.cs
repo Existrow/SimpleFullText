@@ -4,6 +4,6 @@
     {
         public int Id { get; }
 
-        public IEnumerable<string> SearchTerms { get; }
+        public IEnumerable<string> GetSearchTerms(string groupKey);
     }
 }

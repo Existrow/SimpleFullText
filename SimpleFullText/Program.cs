@@ -11,13 +11,15 @@ Console.WriteLine("Try it!");
 var DopStreeetsCount = 60000;
 
 var streets = GetStreets().ToDictionary(sp => sp.Id);
-var storage = Indexer.CreateNgrammIndex(streets.Values);
+var storage = Indexer
+    .ConfigureIndex()
+    .CreateNgrammIndex(streets.Values);
 storage.TrimStorage();
 
 var req = string.Empty;
 while(!string.IsNullOrEmpty(req = GetUserRequest()))
 {
-    Search(storage.SearchByTerms(req.Split(), true).ToList);
+    Search(storage.SearchByTerms(req.Split(), containsAllTerms: true).ToList);
     Search(streets.Values.Where(street => street.Name.Contains(req, StringComparison.OrdinalIgnoreCase)).ToList);
 
     Console.WriteLine(string.Empty);
@@ -60,7 +62,7 @@ IEnumerable<SearchModel> GetStreets()
         {
             Id = id++,
             Name = street.Groups[1].Value,
-            SearchTerms = street.Groups[1].Value.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.ToLower())
+            SearchTerms = street.Groups[1].Value.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
         };
     }
 }
@@ -86,7 +88,13 @@ class SearchModel : ISearchModel
 {
     public int Id { get; init; }
 
-    public string Name { get; init; } = string.Empty;
+    public string Name { get; init; }
 
-    public IEnumerable<string> SearchTerms { get; init; } = Enumerable.Empty<string>();
+    public IEnumerable<string> SearchTerms { get; init; }
+
+    public IEnumerable<string> GetSearchTerms(string groupKey)
+    {
+        yield return Name;
+        foreach(var name in SearchTerms) yield return name;
+    }
 }

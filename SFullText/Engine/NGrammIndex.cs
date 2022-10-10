@@ -1,4 +1,5 @@
-﻿using SFullText.Interfaces;
+using SFullText.Interfaces;
+using SFullText.Models;
 
 namespace SFullText.Engine
 {
@@ -6,49 +7,61 @@ namespace SFullText.Engine
     {
         internal int NGrammLenght { get; private set; }
 
-        private Dictionary<string, /*ids*/ List<int>> _indexes = new();
+        private Dictionary</*ngram*/ string, Dictionary</*groupingKey*/ string, /*ids*/ List<int>>> _indexes = new();
 
         internal NGrammIndex(int nGrammLenght)
         {
             NGrammLenght = nGrammLenght;
         }
 
-        internal override void Create(IEnumerable<ISearchModel> searchModels)
+        internal override void Create(IndexConfiguration indexConfiguration, IEnumerable<ISearchModel> searchModels)
         {
             _indexes = new();
 
             foreach (var model in searchModels)
             {
-                foreach (var term in model.SearchTerms)
+                string? currentGroupKey = null;
+                foreach (var groupingPredicate in indexConfiguration.Labes)
                 {
-                    if (!string.IsNullOrEmpty(term))
+                    currentGroupKey = string.IsNullOrEmpty(currentGroupKey)
+                        ? groupingPredicate(model)
+                        : $"{currentGroupKey}=>{groupingPredicate(model)}";
+
+                    foreach (var term in model.GetSearchTerms(currentGroupKey))
                     {
-                        AddTermIndex(term, model.Id);
+                        if (!string.IsNullOrEmpty(term))
+                        {
+                            AddTermIndex(model.Id, currentGroupKey, term);
+                        }
                     }
                 }
             }
         }
 
-        internal override IEnumerable<int> SearchIdsByTerm(string term)
+        internal override IEnumerable<int> SearchIdsByTerm(string term, string groupingKey = "def")
         {
+            term = NormailzeTerm(term);
             var scores = new Dictionary<int, int>();
 
             var trgrmsCount = 0;
             for (int i = 0; i <= term.Length - NGrammLenght; i++)
             {
                 trgrmsCount++;
-                if (_indexes.TryGetValue(term.Substring(i, NGrammLenght), out var ids))
+                if (_indexes.TryGetValue(term.Substring(i, NGrammLenght), out var groups))
                 {
-                    foreach(var id in ids)
+                    if(groups.TryGetValue(groupingKey, out var ids))
                     {
-                        if (scores.TryGetValue(id, out var score))
+                        foreach (var id in ids)
                         {
-                            scores[id] = ++score;
+                            if (scores.TryGetValue(id, out var score))
+                            {
+                                scores[id] = ++score;
+                            }
+                            else
+                            {
+                                scores.Add(id, 1);
+                            };
                         }
-                        else
-                        {
-                            scores.Add(id, 1);
-                        };
                     }
                 }
             }
@@ -60,30 +73,52 @@ namespace SFullText.Engine
 
         internal override void TrimExcess()
         {
-            foreach (var models in _indexes.Values)
+            foreach (var groups in _indexes.Values)
             {
-                models.TrimExcess();
+                foreach (var model in groups.Values)
+                {
+                    model.TrimExcess();
+                }
+                groups.TrimExcess();
             }
 
             _indexes.TrimExcess();
         }
 
-        private void AddTermIndex(string term, int modelId)
+        private void AddTermIndex(int modelId, string groupKey, string term)
         {
+            term = NormailzeTerm(term);
+
             for (int i = 0; i <= term.Length - NGrammLenght; i++)
             {
                 var part = term.Substring(i, NGrammLenght);
 
-                if (_indexes.TryGetValue(part, out var modelsIds))
+                if (_indexes.TryGetValue(part, out var groups))
                 {
-                    if (!modelsIds.Contains(modelId))
-                        modelsIds.Add(modelId);
+                    if (groups.TryGetValue(groupKey, out var modelsIds))
+                    {
+                        if (!modelsIds.Contains(modelId))
+                            modelsIds.Add(modelId);
+                    }
+                    else
+                    {
+                        groups.Add(groupKey, new() { modelId });
+                    }
                 }
                 else
                 {
-                    _indexes.Add(part, new() { modelId });
+                    _indexes.Add(part, new() { { groupKey, new() { modelId } } });
                 }
             }
+        }
+
+        private string NormailzeTerm(string term)
+        {
+            var capacity = NGrammLenght - term.Length;
+
+            return (capacity > 0
+                ? term + string.Join(string.Empty, Enumerable.Repeat(' ', capacity))
+                : term).ToLower();
         }
     }
 }

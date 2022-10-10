@@ -1,4 +1,4 @@
-﻿using SFullText.Interfaces;
+using SFullText.Interfaces;
 using SFullText.Models;
 
 namespace SFullText.Engine.Utils
@@ -6,19 +6,19 @@ namespace SFullText.Engine.Utils
     public static class Searcher
     {
         public static IEnumerable<T> SearchByWorld<T>(this IndexStorage<T> indexStorage,
-            string world) where T : ISearchModel
+            string world, string groupingKey = "def") where T : ISearchModel
         {
             if (!indexStorage.DataSourceIsCreated)
                 yield break;
 
-            foreach (var id in indexStorage.Index!.SearchIdsByTerm(world))
+            foreach (var id in indexStorage.Index!.SearchIdsByTerm(world, groupingKey))
             {
                 yield return indexStorage.Storage![id];
             }
         }
 
         public static IEnumerable<T> SearchByTerms<T>(this IndexStorage<T> indexStorage,
-            IEnumerable<string> termsСollection, bool containsAllTerms = false) where T : ISearchModel
+            IEnumerable<string> termsСollection, string groupingKey = "def", bool containsAllTerms = false) where T : ISearchModel
         {
             if (!indexStorage.DataSourceIsCreated)
                 yield break;
@@ -29,7 +29,7 @@ namespace SFullText.Engine.Utils
             if (containsAllTerms)
             {
                 var result = terms
-                    .SelectMany(term => indexStorage.Index!.SearchIdsByTerm(term))
+                    .SelectMany(term => indexStorage.Index!.SearchIdsByTerm(term.ToLower(), groupingKey))
                     .GroupBy(id => id)
                     .Where(group => group.Count() >= terms.Count)
                     .Select(group => group.Key);
@@ -41,7 +41,7 @@ namespace SFullText.Engine.Utils
             {
                 foreach (var term in terms)
                 {
-                    foreach (var id in indexStorage.Index!.SearchIdsByTerm(term))
+                    foreach (var id in indexStorage.Index!.SearchIdsByTerm(term.ToLower()))
                     {
                         serchedIds.Add(id);
                     }
