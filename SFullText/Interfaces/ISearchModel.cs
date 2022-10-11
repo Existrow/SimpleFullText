@@ -2,7 +2,7 @@
 {
     public interface ISearchModel
     {
-        public int Id { get; }
+        public uint Id { get; }
 
         public IEnumerable<string> GetSearchTerms(string groupKey);
     }

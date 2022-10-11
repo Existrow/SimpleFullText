@@ -5,51 +5,38 @@ namespace SFullText.Engine.Utils
 {
     public static class Searcher
     {
-        public static IEnumerable<T> SearchByWorld<T>(this IndexStorage<T> indexStorage,
-            string world, string groupingKey = "def") where T : ISearchModel
-        {
-            if (!indexStorage.DataSourceIsCreated)
-                yield break;
+        public static SearchConfiguration ConfigureSearchQuery() => new();
 
-            foreach (var id in indexStorage.Index!.SearchIdsByTerm(world, groupingKey))
-            {
-                yield return indexStorage.Storage![id];
-            }
+        public static SearchConfiguration SetSearchQuery(this SearchConfiguration configuration, string query)
+        {
+            configuration.Query = query;
+
+            return configuration;
         }
 
-        public static IEnumerable<T> SearchByTerms<T>(this IndexStorage<T> indexStorage,
-            IEnumerable<string> termsСollection, string groupingKey = "def", bool containsAllTerms = false) where T : ISearchModel
+        public static SearchConfiguration UseGroupingQuery(this SearchConfiguration configuration, string groupingQuery)
         {
-            if (!indexStorage.DataSourceIsCreated)
+            configuration.GroupingQuery = groupingQuery;
+
+            return configuration;
+        }
+
+        public static IEnumerable<T> Search<T>(this SearchConfiguration configuration, IndexStorage<T> storage) where T : ISearchModel
+        {
+            configuration.ValidateParameters();
+
+            storage = storage ?? throw new ArgumentNullException(nameof(storage));
+
+            if (!storage.DataSourceIsCreated)
                 yield break;
 
-            var terms = termsСollection.ToList();
-            var serchedIds = new HashSet<int>();
+            var ids = storage.Index!.Search(configuration);
 
-            if (containsAllTerms)
+            foreach (var id in ids)
             {
-                var result = terms
-                    .SelectMany(term => indexStorage.Index!.SearchIdsByTerm(term.ToLower(), groupingKey))
-                    .GroupBy(id => id)
-                    .Where(group => group.Count() >= terms.Count)
-                    .Select(group => group.Key);
-
-                foreach (var id in result)
-                    serchedIds.Add(id);
+                if (storage.Storage!.TryGetValue(id, out T? entity))
+                    yield return entity;
             }
-            else
-            {
-                foreach (var term in terms)
-                {
-                    foreach (var id in indexStorage.Index!.SearchIdsByTerm(term.ToLower()))
-                    {
-                        serchedIds.Add(id);
-                    }
-                }
-            }
-
-            foreach (var itemId in serchedIds)
-                yield return indexStorage.Storage![itemId];
         }
     }
 }

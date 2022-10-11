@@ -1,5 +1,6 @@
 using SFullText.Interfaces;
 using SFullText.Models;
+using SFullText.NGramm;
 
 namespace SFullText.Engine.Utils
 {
@@ -9,13 +10,15 @@ namespace SFullText.Engine.Utils
 
         public static IndexConfiguration GroupByLabels(this IndexConfiguration indexConfiguration, Func<ISearchModel, string> labelPredicate)
         {
-            indexConfiguration.Labes.Add(labelPredicate);
+            indexConfiguration.LabesPredicates.Add(labelPredicate);
 
             return indexConfiguration;
         }
 
-        public static IndexStorage<T> CreateNgrammIndex<T>(this IndexConfiguration indexConfiguration, IReadOnlyDictionary<int, T> storgae, int ngrammLenght = 3) where T : ISearchModel
+        public static IndexStorage<T> CreateNgrammIndex<T>(this IndexConfiguration indexConfiguration, IReadOnlyDictionary<uint, T> storgae, int ngrammLenght = 3) where T : ISearchModel
         {
+            indexConfiguration.ValidateParameters();
+
             var index = new NGrammIndex(ngrammLenght);
             index.Create(indexConfiguration, storgae!.Values.Select(sp => (ISearchModel)sp));
 
@@ -24,7 +27,9 @@ namespace SFullText.Engine.Utils
 
         public static IndexStorage<T> CreateNgrammIndex<T>(this IndexConfiguration indexConfiguration, IEnumerable<T> searchModels, int ngrammLenght = 3) where T : ISearchModel
         {
-            var storgae = new Dictionary<int, T>();
+            indexConfiguration.ValidateParameters();
+
+            var storgae = new Dictionary<uint, T>();
             foreach (var searchModel in searchModels)
             {
                 storgae.TryAdd(searchModel.Id, searchModel);

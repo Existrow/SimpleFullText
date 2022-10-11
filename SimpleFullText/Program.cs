@@ -11,15 +11,20 @@ Console.WriteLine("Try it!");
 var DopStreeetsCount = 60000;
 
 var streets = GetStreets().ToDictionary(sp => sp.Id);
+
 var storage = Indexer
     .ConfigureIndex()
     .CreateNgrammIndex(streets.Values);
+
 storage.TrimStorage();
+
+var searchConfiguration = Searcher
+    .ConfigureSearchQuery();
 
 var req = string.Empty;
 while(!string.IsNullOrEmpty(req = GetUserRequest()))
 {
-    Search(storage.SearchByTerms(req.Split(), containsAllTerms: true).ToList);
+    Search(() => searchConfiguration.SetSearchQuery(req).Search(storage).ToList());
     Search(streets.Values.Where(street => street.Name.Contains(req, StringComparison.OrdinalIgnoreCase)).ToList);
 
     Console.WriteLine(string.Empty);
@@ -41,7 +46,7 @@ IEnumerable<SearchModel> GetStreets()
     var regex = new Regex("<a class=.link_to_street.+>(.+)</a>", RegexOptions.Compiled | RegexOptions.Multiline);
 
     var html = new WebClient().DownloadString("https://bestmaps.ru/city/sankt-peterburg/street");
-    int id = 1;
+    uint id = 1;
 
     foreach(var street in regex.Matches(html).Cast<Match>())
     {
@@ -86,7 +91,7 @@ string GetRandomName()
 
 class SearchModel : ISearchModel
 {
-    public int Id { get; init; }
+    public uint Id { get; init; }
 
     public string Name { get; init; }
 
