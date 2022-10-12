@@ -8,7 +8,7 @@ namespace SFullText.Tests.NGramm
     internal class NGrammStringSplitterTests
     {
         [Test]
-        public void TestSplitting()
+        public void N3TestSplitting()
         {
             var word = "ЛеНинА";
 

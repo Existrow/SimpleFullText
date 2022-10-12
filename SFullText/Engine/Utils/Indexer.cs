@@ -25,14 +25,14 @@ namespace SFullText.Engine.Utils
             return new(storgae, index);
         }
 
-        public static IndexStorage<T> CreateNgrammIndex<T>(this IndexConfiguration indexConfiguration, IEnumerable<T> searchModels, int ngrammLenght = 3) where T : ISearchModel
+        public static IndexStorage<T> CreateNgrammIndex<T>(this IndexConfiguration indexConfiguration, IEnumerable<KeyValuePair<uint, T>> searchModels, int ngrammLenght = 3) where T : ISearchModel
         {
             indexConfiguration.ValidateParameters();
 
             var storgae = new Dictionary<uint, T>();
             foreach (var searchModel in searchModels)
             {
-                storgae.TryAdd(searchModel.Id, searchModel);
+                storgae.TryAdd(searchModel.Key, searchModel.Value);
             }
 
             var index = new NGrammIndex(ngrammLenght);

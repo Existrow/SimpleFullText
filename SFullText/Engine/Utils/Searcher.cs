@@ -14,9 +14,9 @@ namespace SFullText.Engine.Utils
             return configuration;
         }
 
-        public static SearchConfiguration UseGroupingQuery(this SearchConfiguration configuration, string groupingQuery)
+        public static SearchConfiguration SelectGroups(this SearchConfiguration configuration, Func<IEnumerable<string>> groupsSelector)
         {
-            configuration.GroupingQuery = groupingQuery;
+            configuration.Groups.AddRange(groupsSelector());
 
             return configuration;
         }

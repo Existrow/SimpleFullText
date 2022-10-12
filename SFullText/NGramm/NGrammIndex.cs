@@ -47,7 +47,7 @@ namespace SFullText.NGramm
                 : NGrammStringSplitter.SplitString(searchConfiguration.Query, NGrammLength);
             searchedNGramms ??= Enumerable.Empty<string>();
 
-            var usedContainers = GetContainers(searchConfiguration.GroupingQuery);
+            var usedContainers = GetContainers(searchConfiguration.Groups);
 
             var scores = new Dictionary<uint, int>();
 
@@ -79,9 +79,9 @@ namespace SFullText.NGramm
                 .Select(pair => pair.Key);
         }
 
-        private IEnumerable<DataContainer> GetContainers(string? groupingQuery)
+        private IEnumerable<DataContainer> GetContainers(IEnumerable<string> groups)
         {
-            foreach (var containerKey in DataContainerKeySelector.GetKeysByGroupingQuery(groupingQuery))
+            foreach (var containerKey in groups)
             {
                 if (_dataContainers.TryGetValue(containerKey, out var container)) yield return container;
             }

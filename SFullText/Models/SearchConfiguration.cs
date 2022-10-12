@@ -6,11 +6,11 @@
 
         internal bool UseSplitting { get; set; } = true;
 
-        internal string? GroupingQuery { get; set; }
+        internal List<string> Groups { get; set; } = new();
 
         internal void ValidateParameters()
         {
-            if (string.IsNullOrWhiteSpace(GroupingQuery)) GroupingQuery = "def";
+            if (Groups.Count == 0) Groups.Add("def");
         }
     }
 }
