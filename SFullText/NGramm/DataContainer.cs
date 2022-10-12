@@ -23,8 +23,10 @@
         {
             if (_data.TryGetValue(nGrammId, out var idsCollection))
             {
-                foreach (var id in idsCollection) yield return id;
+                return idsCollection;
             }
+
+            return Enumerable.Empty<uint>();
         }
 
         public void TrimExcess()
